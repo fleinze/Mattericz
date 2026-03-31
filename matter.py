@@ -34,18 +34,33 @@ import DomoticzEx as Domoticz
 # ---------------------------------------------------------------------------
 # Constants – Matter cluster / attribute IDs
 # ---------------------------------------------------------------------------
-CLUSTER_TEMPERATURE = 0x0402   # Temperature Measurement
-ATTR_TEMP_MEASURED  = 0x0000   # MeasuredValue (int16, 0.01 °C)
 
-DOMOTICZ_TEMP_TYPE  = "Temperature"
-
-UNIT_TEMPERATURE    = 1    # one Domoticz Unit per DeviceID in this plugin
-
+TypeDB = {
+(0x0402,0x0000): {'DomoType': 'Temperature', 'Multiplier': 0.01},
+(0x0405,0x0000): {'DomoType': 'Humidity',    'Multiplier': 0.01},
+(0x0006,0x0000): {'DomoType': 'Switch',      'Multiplier': 1.00},
+}
+"""
+Domotypes to do:
+Barometer
+Illumination
+Voltage
+Current (Single)
+Usage
+RFXMeter
+Dimmer
+"""
 
 def _make_device_id(node_id: int, endpoint_id: int, cluster_id: int) -> str:
     """Stable Domoticz DeviceID string (Varchar(25) max)."""
-    return f"matter_{node_id}_{endpoint_id}_{cluster_id:04x}"
+    return f"{node_id}/{endpoint_id}/{cluster_id:04x}"
 
+def _m2d(value, domotype) -> (int, str):
+    if domotype == 'Humidity':
+        return int(round(float(value))), "0"
+    if domotype == 'Switch':
+        return int(value), "On" if value == 1 else "Off"
+    return 0, str(value)
 
 def _parse_attribute_path(path: str):
     """
@@ -107,6 +122,13 @@ class MatterBridge:
         elif "message_id" in msg:
             self._handle_response(msg)
 
+    def onCommand(self, DeviceID, Unit, Command, Level, Color):
+        """Forward a Domoticz command to the matter device"""
+        Domoticz.Log(
+            f"onCommand - DeviceID={DeviceID} Unit={Unit} "
+            f"Command={Command} Level={Level}"
+        )
+
     # ------------------------------------------------------------------
     # Message dispatch
     # ------------------------------------------------------------------
@@ -120,13 +142,12 @@ class MatterBridge:
             return
 
         result = msg.get("result")
-        cmd_id = msg.get("message_id", "")
+        message_id = msg.get("message_id", "")
 
         # start_listening response carries the full node dump in result.nodes
-        if cmd_id == "start_listening" and isinstance(result, dict):
-            nodes = result.get("nodes", [])
-            Domoticz.Log(f"[Matter] start_listening: {len(nodes)} node(s) received.")
-            for node in nodes:
+        if message_id == "start_listening" and isinstance(result, list):
+            Domoticz.Log(f"[Matter] start_listening: {len(result)} node(s) received.")
+            for node in result:
                 self._process_node(node)
 
     def _handle_event(self, msg: dict):
@@ -164,8 +185,8 @@ class MatterBridge:
 
         endpoint_id, cluster_id, attribute_id = parsed
 
-        if cluster_id == CLUSTER_TEMPERATURE and attribute_id == ATTR_TEMP_MEASURED:
-            self._update_temperature(node_id, endpoint_id, value)
+        if (cluster_id, attribute_id)  in TypeDB:
+            self._update_value(node_id, endpoint_id, cluster_id, attribute_id, value)
 
     def _process_node(self, node: dict):
         """
@@ -180,59 +201,63 @@ class MatterBridge:
 
         Domoticz.Log(f"[Matter] Processing node {node_id}: {len(attributes)} attribute(s).")
 
+        # Determine NodeLabel per endpoint:
+        # - Cluster 0x0039 (57) = Bridged Device Basic Information, only
+        #   present on bridged device endpoints → use that endpoint's own label
+        # - Cluster 0x0028 (40) = Basic Information, on ep0 of native devices
+        #   → use ep0/40/5
+        # We build a cache of ep → label once before the attribute loop.
+        ep_labels: dict = {}
+        ep_values: list = []
         for attr_path, value in attributes.items():
-            parts = attr_path.split("/")
-            if len(parts) < 3:
+            parsed = _parse_attribute_path(attr_path)
+            if parsed is None:
                 continue
-            try:
-                endpoint_id  = int(parts[0])
-                cluster_id   = int(parts[1])
-                attribute_id = int(parts[2])
-            except ValueError:
-                continue
-
-            if cluster_id == CLUSTER_TEMPERATURE and attribute_id == ATTR_TEMP_MEASURED:
-                self._update_temperature(node_id, endpoint_id, value)
+            endpoint_id, cluster_id, attribute_id = parsed
+            # Bridged Device Basic Information NodeLabel (ep/57/5)
+            if cluster_id == 0x0039 and attribute_id == 0x0005 and value:
+                ep_labels[endpoint_id] = str(value).strip()
+            # Basic Information NodeLabel on ep0 (0/40/5) – fallback
+            if cluster_id == 0x0028 and attribute_id == 0x0005 and endpoint_id == 0 and value:
+                ep_labels.setdefault("_root", str(value).strip())
+            if (cluster_id, attribute_id)  in TypeDB:
+                ep_values.append({'endpoint_id':endpoint_id,'cluster_id':cluster_id,'attribute_id':attribute_id,'value':value})
+                #Domoticz.Log(f'fleinze: success {TypeDB.get((cluster_id, attribute_id))}')
+       # Domoticz.Log(f'{ep_values=}')
+        for ep_value in ep_values:
+            endpoint_id = ep_value['endpoint_id']
+            cluster_id = ep_value['cluster_id']
+            attribute_id = ep_value['attribute_id']
+            value = ep_value['value']
+            label = ep_labels.get(endpoint_id) or ep_labels.get("_root")
+            self._update_value(node_id, endpoint_id, cluster_id, attribute_id, value, label)
 
     # ------------------------------------------------------------------
     # Domoticz device management
     # ------------------------------------------------------------------
-
-    def _update_temperature(self, node_id: int, endpoint_id: int, raw_value):
-        """
-        raw_value is int16 in 0.01 °C steps (e.g. 2150 → 21.50 °C).
-        Creates the Domoticz device if not yet present, then updates it.
-        """
-        if raw_value is None:
+    def _update_value(self, node_id: int, endpoint_id: int, cluster_id: int, attribute_id: int, value, label: str=None):
+        """ Updates the Domoticz device value. Creates if neccessary """
+        if value is None:
             return
-        try:
-            temp_c = int(raw_value) / 100.0
-        except (TypeError, ValueError):
-            Domoticz.Error(
-                f"[Matter] Cannot convert temperature: {raw_value!r} "
-                f"(node {node_id} ep {endpoint_id})"
-            )
-            return
-
-        device_id = _make_device_id(node_id, endpoint_id, CLUSTER_TEMPERATURE)
-
+        device_id = _make_device_id(node_id, endpoint_id, cluster_id)
         existing_unit = self._find_unit_by_device_id(device_id)
+        domotype = TypeDB.get((cluster_id, attribute_id))['DomoType']
+        multiplier = TypeDB.get((cluster_id, attribute_id))['Multiplier']
         if existing_unit is None:
-            name = f"Matter Temp {node_id}/{endpoint_id}"
+            # Use NodeLabel if available, fall back to a generic name.
+            name = label if label else f"Matter {node_id}/{endpoint_id}"
             Domoticz.Log(f"[Matter] Creating device '{name}' (DeviceID={device_id})")
             try:
                 Domoticz.Unit(
                     Name=name,
-                    Unit=UNIT_TEMPERATURE,
+                    Unit=1,
                     DeviceID=device_id,
-                    TypeName=DOMOTICZ_TEMP_TYPE,
+                    TypeName=domotype,
                     Used=1,
                 ).Create()
             except Exception as exc:
                 Domoticz.Error(f"[Matter] Device creation failed: {exc}")
                 return
-            existing_unit = UNIT_TEMPERATURE
-
         try:
             dev = self._devices.get(device_id)
             if dev is None:
@@ -241,14 +266,14 @@ class MatterBridge:
             unit_obj = dev.Units.get(existing_unit)
             if unit_obj is None:
                 return
-            new_svalue = f"{temp_c:.1f}"
-            if unit_obj.sValue != new_svalue:
-                unit_obj.nValue = 0
-                unit_obj.sValue = new_svalue
-                unit_obj.Update(Log=True)
-                Domoticz.Log(f"[Matter] Temperature {device_id} → {temp_c:.1f} °C")
+            nvalue, svalue = _m2d(value * multiplier, domotype)
+            unit_obj.nValue = nvalue
+            unit_obj.sValue = svalue
+            unit_obj.Update(Log=True)
+            Domoticz.Log(f"[Matter] Value {device_id} → {nvalue},{svalue}")
         except Exception as exc:
             Domoticz.Error(f"[Matter] Device update failed: {exc}")
+
 
     def _find_unit_by_device_id(self, device_id: str):
         """Return the first unit number for the given DeviceID, or None."""
