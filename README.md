@@ -1,4 +1,4 @@
-# Mattricz
+# Mattericz
 Matter plugin for Domoticz
 
 Requires a running instance of the Open Home Foundation Matter Server, e.g. as Docker container
