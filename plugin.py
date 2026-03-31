@@ -12,7 +12,7 @@ Connects to a python-matter-server via WebSocket using Domoticz.Connection Proto
         Currently supports: Temperature sensors (Matter cluster 0x0402).
     </description>
     <params>
-        <param field="Mode1" label="Matter Server URL" width="300px" required="true"
+        <param field="Address" label="Matter Server URL" width="300px" required="true"
                default="ws://localhost:5580/ws"/>
         <param field="Mode6" label="Debug" width="75px">
             <options>
@@ -57,7 +57,7 @@ class BasePlugin:
             Domoticz.Debugging(1)
             Domoticz.Log("Debug mode enabled")
 
-        url = Parameters["Mode1"].strip()
+        url = Parameters["Address"].strip()
         if not url:
             Domoticz.Error("Matter Server URL not configured - aborting start.")
             return
@@ -172,10 +172,7 @@ class BasePlugin:
         self._connected = False
 
     def onCommand(self, DeviceID, Unit, Command, Level, Color):
-        Domoticz.Log(
-            f"onCommand - DeviceID={DeviceID} Unit={Unit} "
-            f"Command={Command} Level={Level}"
-        )
+        self.matter.onCommand(DeviceID, Unit, Command, Level, Color)
 
     def onNotification(self, Name, Subject, Text, Status, Priority, Sound, ImageFile):
         pass
