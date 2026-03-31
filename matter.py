@@ -53,7 +53,7 @@ Dimmer
 
 def _make_device_id(node_id: int, endpoint_id: int, cluster_id: int) -> str:
     """Stable Domoticz DeviceID string (Varchar(25) max)."""
-    return f"{node_id}/{endpoint_id}/{cluster_id:04x}"
+    return f"{node_id}/{endpoint_id}/{cluster_id}"
 
 def _m2d(value, domotype) -> (int, str):
     if domotype == 'Humidity':
@@ -122,12 +122,28 @@ class MatterBridge:
         elif "message_id" in msg:
             self._handle_response(msg)
 
-    def onCommand(self, DeviceID, Unit, Command, Level, Color):
+    def on_command(self, DeviceID, Unit, Command, Level, Color):
         """Forward a Domoticz command to the matter device"""
+        Domoticz.Log(self._devices.get(DeviceID))
         Domoticz.Log(
-            f"onCommand - DeviceID={DeviceID} Unit={Unit} "
-            f"Command={Command} Level={Level}"
+            f"onCommand - {DeviceID=} {Unit=} "
+            f"{Command=} {Level=}, {Color=}"
         )
+        parsed = _parse_attribute_path(DeviceID)
+        if parsed is None:
+            return
+
+        node_id, endpoint_id, cluster_id = parsed
+        command = "device_command"
+        args = {
+                "endpoint_id": endpoint_id,
+                "node_id": node_id,
+                "payload": {},
+                "cluster_id": cluster_id,
+                "command_name": Command
+        }
+        self._send_command(command, args)
+#mattertest: onCommand - DeviceID=1/4/0006 Unit=1 Command=On Level=0
 
     # ------------------------------------------------------------------
     # Message dispatch
