@@ -172,7 +172,7 @@ class BasePlugin:
         self._connected = False
 
     def onCommand(self, DeviceID, Unit, Command, Level, Color):
-        self.matter.onCommand(DeviceID, Unit, Command, Level, Color)
+        self.matter.on_command(DeviceID, Unit, Command, Level, Color)
 
     def onNotification(self, Name, Subject, Text, Status, Priority, Sound, ImageFile):
         pass
