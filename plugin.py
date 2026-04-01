@@ -7,9 +7,9 @@ Connects to a python-matter-server via WebSocket using Domoticz.Connection Proto
 <plugin key="Matter" name="Matter (python-matter-server)" author="fleinze" version="0.1.0"
         externallink="https://github.com/fleinze/domoticz-python-matter">
     <description>
-        <h2>Matter Plugin</h2>
         Connects to a python-matter-server WebSocket and imports Matter devices into Domoticz.
-        Currently supports: Temperature sensors (Matter cluster 0x0402).
+        For commissioning of new nodes open the python-matter-server in a webbrowser.
+        Open e.g. http://192.168.0.1:5580/ if WebSockets URL is ws://192.168.0.1:5580/ws
     </description>
     <params>
         <param field="Address" label="Matter Server URL" width="300px" required="true"

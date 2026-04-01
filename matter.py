@@ -39,6 +39,7 @@ TypeDB = {
 (0x0402,0x0000): {'DomoType': 'Temperature', 'Multiplier': 0.01},
 (0x0405,0x0000): {'DomoType': 'Humidity',    'Multiplier': 0.01},
 (0x0006,0x0000): {'DomoType': 'Switch',      'Multiplier': 1.00},
+(0x0008,0x0000): {'DomoType': 'Dimmer',      'Multiplier': 1.00},
 }
 """
 Domotypes to do:
@@ -60,6 +61,8 @@ def _m2d(value, domotype) -> (int, str):
         return int(round(float(value))), "0"
     if domotype == 'Switch':
         return int(value), "On" if value == 1 else "Off"
+    if domotype == 'Dimmer':
+        return 0 if value==0 else 1, str(int(round(float(value*100/255))))
     return 0, str(value)
 
 def _parse_attribute_path(path: str):
@@ -124,9 +127,8 @@ class MatterBridge:
 
     def on_command(self, DeviceID, Unit, Command, Level, Color):
         """Forward a Domoticz command to the matter device"""
-        Domoticz.Log(self._devices.get(DeviceID))
         Domoticz.Log(
-            f"onCommand - {DeviceID=} {Unit=} "
+            f"on_command - {DeviceID=} {Unit=} "
             f"{Command=} {Level=}, {Color=}"
         )
         parsed = _parse_attribute_path(DeviceID)
@@ -134,14 +136,32 @@ class MatterBridge:
             return
 
         node_id, endpoint_id, cluster_id = parsed
+#        Domoticz.Log(self._devices[DeviceID].Units[1].Type)
         command = "device_command"
-        args = {
+        if Command == "On" or Command == "Off" and cluster_id == 0x0006:
+            args = {
                 "endpoint_id": endpoint_id,
                 "node_id": node_id,
                 "payload": {},
                 "cluster_id": cluster_id,
                 "command_name": Command
-        }
+            }
+        elif Command == "Off" and cluster_id == 0x0008:
+            args = {
+                "endpoint_id": endpoint_id,
+                "node_id": node_id,
+                "payload": {"level": 0, "transitionTime": 3},
+                "cluster_id": cluster_id,
+                "command_name": "MoveToLevel"
+            }
+        elif Command == "Set Level":
+            args = {
+                "endpoint_id": endpoint_id,
+                "node_id": node_id,
+                "payload": {"level": int(Level/100*255), "transitionTime": 3},
+                "cluster_id": cluster_id,
+                "command_name": "MoveToLevel"
+            }
         self._send_command(command, args)
 #mattertest: onCommand - DeviceID=1/4/0006 Unit=1 Command=On Level=0
 
