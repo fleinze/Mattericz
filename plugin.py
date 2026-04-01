@@ -8,12 +8,13 @@ Connects to a python-matter-server via WebSocket using Domoticz.Connection Proto
         externallink="https://github.com/fleinze/domoticz-python-matter">
     <description>
         Connects to a python-matter-server WebSocket and imports Matter devices into Domoticz.
-        For commissioning of new nodes open the python-matter-server in a webbrowser.
-        Open e.g. http://192.168.0.1:5580/ if WebSockets URL is ws://192.168.0.1:5580/ws
+        For commissioning of new nodes open the python-matter-server in a webbrowser or via the domoticz custom menu.
     </description>
     <params>
-        <param field="Address" label="Matter Server URL" width="300px" required="true"
-               default="ws://localhost:5580/ws"/>
+        <param field="Address" label="Matter Server Address" width="300px" required="true"
+               default="localhost"/>
+        <param field="Port" label="Matter Server Port" width="300px" required="true"
+               default="5580"/>
         <param field="Mode6" label="Debug" width="75px">
             <options>
                 <option label="None"    value="0" default="true"/>
@@ -29,7 +30,7 @@ import matter as MatterBridge
 import base64
 import secrets
 import urllib.parse
-
+import os
 
 class BasePlugin:
     """Main plugin class – lifecycle managed by Domoticz."""
@@ -57,19 +58,18 @@ class BasePlugin:
             Domoticz.Debugging(1)
             Domoticz.Log("Debug mode enabled")
 
-        url = Parameters["Address"].strip()
-        if not url:
-            Domoticz.Error("Matter Server URL not configured - aborting start.")
-            return
-
-        parsed = urllib.parse.urlparse(url)
-        self._host = parsed.hostname or "localhost"
-        self._port = parsed.port or 5580
-        self._path = parsed.path or "/ws"
+        self._host = Parameters["Address"].strip() or "localhost"
+        self._port = Parameters["Port"].strip() or 5580
+        self._path = "/ws"
 
         self.matter = MatterBridge.MatterBridge(devices=Devices, debug=self.debug)
 
         self._connect()
+
+        html_content = f'<IFRAME SRC="http://{self._host}:{self._port}/" height="600" width="100%"></IFRAME>'
+        with open('./www/templates/matter.html', 'w', encoding='utf-8') as f:
+            f.write(html_content)
+
 
     def onStop(self):
         Domoticz.Log("Matter plugin stopping ...")
@@ -80,6 +80,8 @@ class BasePlugin:
             except Exception:
                 pass
             self.conn = None
+        if os.path.exists('./www/templates/matter.html'):
+            os.remove('./www/templates/matter.html')
 
     def onHeartbeat(self):
         self._hb_count += 1
@@ -195,8 +197,8 @@ class BasePlugin:
         if not self._connected or self.conn is None:
             Domoticz.Error("[Matter] _send_ws: not connected")
             return
-        if self.debug:
-            Domoticz.Debug(f"WS -> {payload[:300]}")
+#        if self.debug:
+#            Domoticz.Debug(f"WS -> {payload[:300]}")
         self.conn.Send({"Payload": payload, "Mask": secrets.randbits(32)})
 
 

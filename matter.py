@@ -36,21 +36,15 @@ import DomoticzEx as Domoticz
 # ---------------------------------------------------------------------------
 
 TypeDB = {
-(0x0402,0x0000): {'DomoType': 'Temperature', 'Multiplier': 0.01},
-(0x0405,0x0000): {'DomoType': 'Humidity',    'Multiplier': 0.01},
-(0x0006,0x0000): {'DomoType': 'Switch',      'Multiplier': 1.00},
-(0x0008,0x0000): {'DomoType': 'Dimmer',      'Multiplier': 1.00},
+(0x0402,0x0000): {'DomoType': 'Temperature',     'Multiplier': 0.01},
+(0x0405,0x0000): {'DomoType': 'Humidity',        'Multiplier': 0.01},
+(0x0006,0x0000): {'DomoType': 'Switch',          'Multiplier': 1.00},
+(0x0008,0x0000): {'DomoType': 'Dimmer',          'Multiplier': 1.00},
+(0x0090,0x0004): {'DomoType': 'Voltage',         'Multiplier': 1.00}, #noqa
+(0x0090,0x0005): {'DomoType': 'Current (Single)','Multiplier': 1.00}, #noqa
+(0x0090,0x0008): {'DomoType': 'Usage',           'Multiplier': 1.00}, #noqa
+(0x0091,0x0001): {'DomoType': 'RFXMeter',        'Multiplier': 0.001}, #noqa
 }
-"""
-Domotypes to do:
-Barometer
-Illumination
-Voltage
-Current (Single)
-Usage
-RFXMeter
-Dimmer
-"""
 
 def _make_device_id(node_id: int, endpoint_id: int, cluster_id: int) -> str:
     """Stable Domoticz DeviceID string (Varchar(25) max)."""
@@ -118,7 +112,7 @@ class MatterBridge:
             return
 
         if self._debug:
-            Domoticz.Debug(f"[Matter] ← {raw[:400]}")
+            Domoticz.Debug(f"[Matter] <- {raw[:400]}")
 
         if "event" in msg:
             self._handle_event(msg)
@@ -138,7 +132,7 @@ class MatterBridge:
         node_id, endpoint_id, cluster_id = parsed
 #        Domoticz.Log(self._devices[DeviceID].Units[1].Type)
         command = "device_command"
-        if Command == "On" or Command == "Off" and cluster_id == 0x0006:
+        if (Command == "On" or Command == "Off") and cluster_id == 0x0006:
             args = {
                 "endpoint_id": endpoint_id,
                 "node_id": node_id,
@@ -163,7 +157,6 @@ class MatterBridge:
                 "command_name": "MoveToLevel"
             }
         self._send_command(command, args)
-#mattertest: onCommand - DeviceID=1/4/0006 Unit=1 Command=On Level=0
 
     # ------------------------------------------------------------------
     # Message dispatch
@@ -337,5 +330,5 @@ class MatterBridge:
             payload["args"] = args
         raw = json.dumps(payload)
         if self._debug:
-            Domoticz.Debug(f"[Matter] → {raw}")
+            Domoticz.Debug(f"[Matter] -> {raw}")
         self._send_fn(raw)
