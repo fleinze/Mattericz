@@ -83,9 +83,6 @@ class BasePlugin:
 
     def onHeartbeat(self):
         self._hb_count += 1
-        if self.debug:
-            Domoticz.Debug(f"onHeartbeat #{self._hb_count} connected={self._connected}")
-
         if not self._connected:
             if self._hb_count % self._reconnect_interval == 0:
                 Domoticz.Log("Not connected - reconnecting ...")
@@ -163,8 +160,8 @@ class BasePlugin:
                 )
                 return
 
-            if self.debug:
-                Domoticz.Debug(f"WS <- {raw[:300]}")
+#            if self.debug:
+#                Domoticz.Debug(f"WS <- {raw[:300]}")
             self.matter.on_message(raw)
 
     def onDisconnect(self, Connection):
