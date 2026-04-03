@@ -10,6 +10,7 @@ calls from plugin.py:
   bridge = MatterBridge(devices=Devices, debug=True)
   bridge.on_connected(send_fn)    # called once WS handshake succeeded (Status 101)
   bridge.on_message(raw_str)      # called for every incoming WS Payload
+  bridge.on_command(...)          # called when a command is executed in Domoticz
 
 Outgoing messages are sent via the send_fn(str) callback.
 
@@ -23,8 +24,7 @@ Event types of interest:
   node_added / node_updated / node_removed
 
 Supported Matter clusters (v0.1):
-  0x0402  Temperature Measurement
-          Attribute 0x0000  MeasuredValue  (int16, 0.01 °C)
+  see TypeDB struct
 """
 
 import json
@@ -40,10 +40,10 @@ TypeDB = {
 (0x0405,0x0000): {'DomoType': 'Humidity',        'Multiplier': 0.010},
 (0x0006,0x0000): {'DomoType': 'Switch',          'Multiplier': 1.000},
 (0x0008,0x0000): {'DomoType': 'Dimmer',          'Multiplier': 0.392},
-(0x0090,0x0004): {'DomoType': 'Voltage',         'Multiplier': 0.001}, #noqa
-(0x0090,0x0005): {'DomoType': 'Current (Single)','Multiplier': 0.001}, #noqa
-(0x0090,0x0008): {'DomoType': 'Usage',           'Multiplier': 0.001}, #noqa
-(0x0091,0x0001): {'DomoType': 'RFXMeter',        'Multiplier': 0.001}, #noqa
+(0x0090,0x0004): {'DomoType': 'Voltage',         'Multiplier': 0.001}, #untested
+(0x0090,0x0005): {'DomoType': 'Current (Single)','Multiplier': 0.001}, #untested
+(0x0090,0x0008): {'DomoType': 'Usage',           'Multiplier': 0.001}, #untested
+(0x0091,0x0001): {'DomoType': 'RFXMeter',        'Multiplier': 0.001}, #untested
 }
 
 def _make_device_id(node_id: int, endpoint_id: int, cluster_id: int) -> str:
