@@ -40,9 +40,9 @@ TypeDB = {
 (0x0405,0x0000): {'DomoType': 'Humidity',        'Multiplier': 0.01},
 (0x0006,0x0000): {'DomoType': 'Switch',          'Multiplier': 1.00},
 (0x0008,0x0000): {'DomoType': 'Dimmer',          'Multiplier': 1.00},
-(0x0090,0x0004): {'DomoType': 'Voltage',         'Multiplier': 1.00}, #noqa
-(0x0090,0x0005): {'DomoType': 'Current (Single)','Multiplier': 1.00}, #noqa
-(0x0090,0x0008): {'DomoType': 'Usage',           'Multiplier': 1.00}, #noqa
+(0x0090,0x0004): {'DomoType': 'Voltage',         'Multiplier': 0.001}, #noqa
+(0x0090,0x0005): {'DomoType': 'Current (Single)','Multiplier': 0.001}, #noqa
+(0x0090,0x0008): {'DomoType': 'Usage',           'Multiplier': 0.001}, #noqa
 (0x0091,0x0001): {'DomoType': 'RFXMeter',        'Multiplier': 0.001}, #noqa
 }
 
