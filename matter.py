@@ -36,10 +36,10 @@ import DomoticzEx as Domoticz
 # ---------------------------------------------------------------------------
 
 TypeDB = {
-(0x0402,0x0000): {'DomoType': 'Temperature',     'Multiplier': 0.01},
-(0x0405,0x0000): {'DomoType': 'Humidity',        'Multiplier': 0.01},
-(0x0006,0x0000): {'DomoType': 'Switch',          'Multiplier': 1.00},
-(0x0008,0x0000): {'DomoType': 'Dimmer',          'Multiplier': 1.00},
+(0x0402,0x0000): {'DomoType': 'Temperature',     'Multiplier': 0.010},
+(0x0405,0x0000): {'DomoType': 'Humidity',        'Multiplier': 0.010},
+(0x0006,0x0000): {'DomoType': 'Switch',          'Multiplier': 1.000},
+(0x0008,0x0000): {'DomoType': 'Dimmer',          'Multiplier': 0.392},
 (0x0090,0x0004): {'DomoType': 'Voltage',         'Multiplier': 0.001}, #noqa
 (0x0090,0x0005): {'DomoType': 'Current (Single)','Multiplier': 0.001}, #noqa
 (0x0090,0x0008): {'DomoType': 'Usage',           'Multiplier': 0.001}, #noqa
@@ -50,14 +50,14 @@ def _make_device_id(node_id: int, endpoint_id: int, cluster_id: int) -> str:
     """Stable Domoticz DeviceID string (Varchar(25) max)."""
     return f"{node_id}/{endpoint_id}/{cluster_id}"
 
-def _m2d(value, domotype) -> (int, str):
+def _m2d(value, domotype, multiplier) -> (int, str):
     if domotype == 'Humidity':
-        return int(round(float(value))), "0"
+        return int(round(float(value*multiplier))), "0"
     if domotype == 'Switch':
         return int(value), "On" if value == 1 else "Off"
     if domotype == 'Dimmer':
-        return 0 if value==0 else 1, str(int(round(float(value*100/255))))
-    return 0, str(value)
+        return 0 if value==0 else 1, str(int(round(float(value*multiplier))))
+    return 0, str(value*multiplier)
 
 def _parse_attribute_path(path: str):
     """
@@ -295,7 +295,7 @@ class MatterBridge:
             unit_obj = dev.Units.get(existing_unit)
             if unit_obj is None:
                 return
-            nvalue, svalue = _m2d(value * multiplier, domotype)
+            nvalue, svalue = _m2d(value, domotype)
             unit_obj.nValue = nvalue
             unit_obj.sValue = svalue
             unit_obj.Update(Log=True)
