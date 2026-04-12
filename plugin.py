@@ -49,8 +49,8 @@ def _ws_upgrade_request(host: str, port: int, path: str) -> bytes:
         "Connection: Upgrade",
         f"Sec-WebSocket-Key: {key}",
         "Sec-WebSocket-Version: 13",
-#        "Sec-WebSocket-Extensions: permessage-deflate; client_no_context_takeover",
-        "Sec-WebSocket-Extensions: client_no_context_takeover",
+        "Sec-WebSocket-Extensions: permessage-deflate; client_no_context_takeover",
+#        "Sec-WebSocket-Extensions: client_no_context_takeover",
         "",
         "",
     ]
@@ -183,8 +183,9 @@ class WsDecoder:
         self._frags = bytearray()
 
         if self._compressed:
+#            Domoticz.Log(f"[WS] decompress: raw len={len(raw)}, first bytes={raw[:10].hex()}, last bytes={raw[-4:].hex()}")
             try:
-                raw = self._inflator.decompress(raw)
+                raw = self._inflator.decompress(raw+b"\x00\x00\xff\xff")
                 raw += self._inflator.flush(zlib.Z_SYNC_FLUSH)
             except zlib.error as exc:
                 Domoticz.Error(f"[WS] zlib decompress failed: {exc}")
