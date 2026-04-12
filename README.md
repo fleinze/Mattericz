@@ -1,6 +1,10 @@
 # Mattericz
 Matter plugin for Domoticz
 
+*This plugin was written with the assistance of AI*
+
+Licensed under the [MIT License](LICENSE)
+
 ## Requirements
 Requires a running instance of the Open Home Foundation Matter Server.
 https://github.com/matter-js/python-matter-server

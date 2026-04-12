@@ -27,12 +27,15 @@ Connects to a python-matter-server via WebSocket using Domoticz.Connection Proto
 """
 
 import DomoticzEx as Domoticz
-import matter as MatterBridge
 import base64
 import hashlib
 import os
 import secrets
 import zlib
+import sys, importlib
+if 'matter' in sys.modules:  #Force reload of matter module
+    del sys.modules['matter']
+from matter import MatterBridge
 
 # ---------------------------------------------------------------------------
 # RFC-6455 WebSocket helpers
@@ -241,7 +244,7 @@ class BasePlugin:
         self._port = Parameters["Port"].strip() or 5580
         self._path = "/ws"
 
-        self.matter = MatterBridge.MatterBridge(devices=Devices, debug=self.debug)
+        self.matter = MatterBridge(devices=Devices, debug=self.debug)
         self._connect()
 
         html_content = f'<IFRAME SRC="http://{self._host}:{self._port}/" height="600" width="100%"></IFRAME>'
