@@ -25,6 +25,7 @@ Currently supported are
 * Humidity
 * On/Off Relay
 * Dimmer
+
 Added but untested
 * Voltage
 * Current
@@ -33,7 +34,7 @@ Added but untested
 
 ## Add own sensors
 Edit `matter.py`. 
-Add a line to `TypeDG` containing
+Add a line to `TypeDB` containing
 ```
 (cluster_id, attribute_id):{'DomoType': 'Type', 'Multiplier':1.0}
 ```
