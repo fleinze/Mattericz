@@ -39,11 +39,12 @@ TypeDB = {
 (0x0402,0x0000): {'DomoType': 'Temperature',     'Multiplier': 0.01},
 (0x0405,0x0000): {'DomoType': 'Humidity',        'Multiplier': 0.01},
 (0x0006,0x0000): {'DomoType': 'Switch',          'Multiplier': 1.},
+(0x003b,0x0001): {'DomoType': 'Switch',          'Multiplier': 1.},
 (0x0008,0x0000): {'DomoType': 'Dimmer',          'Multiplier': 0.392},
 (0x0090,0x0004): {'DomoType': 'Voltage',         'Multiplier': 0.001},
 (0x0090,0x0005): {'DomoType': 'Current (Single)','Multiplier': 0.001},
 (0x0090,0x0008): {'DomoType': 'Usage',           'Multiplier': 0.001},
-#(0x0091,0x0001): {'DomoType': 'RFXMeter',        'Multiplier': 0.001}, #untested
+(0x0091,0x0001): {'DomoType': '113;0;0',         'Multiplier': 1.0},
 }
 
 def _m2d(value, cluster_id, attribute_id) -> (int, str):
@@ -55,6 +56,8 @@ def _m2d(value, cluster_id, attribute_id) -> (int, str):
         return int(value), "On" if value == 1 else "Off"
     if domotype == 'Dimmer':
         return 0 if value==0 else 1, str(int(round(float(value*multiplier))))
+    if domotype == '113;0;0':
+        return 0, str(round(value["0"]*multiplier,3))
     return 0, str(round(value*multiplier,3))
 
 def _make_device_id(node_id: int, endpoint_id: int, cluster_id: int, attribute_id: int) -> str:
@@ -278,17 +281,34 @@ class MatterBridge:
             # Use NodeLabel if available, fall back to a generic name.
             name = label if label else f"Matter {node_id}/{endpoint_id}"
             Domoticz.Log(f"[Matter] Creating device '{name}' (DeviceID={device_id})")
-            try:
-                Domoticz.Unit(
-                    Name=name,
-                    Unit=1,
-                    DeviceID=device_id,
-                    TypeName=domotype,
-                    Used=1,
-                ).Create()
-            except Exception as exc:
-                Domoticz.Error(f"[Matter] Device creation failed: {exc}")
-                return
+            if not domotype[0].isdigit():
+                try:
+                    Domoticz.Unit(
+                        Name=name,
+                        Unit=1,
+                        DeviceID=device_id,
+                        TypeName=domotype,
+                        Used=1,
+                    ).Create()
+                except Exception as exc:
+                    Domoticz.Error(f"[Matter] Device creation failed: {exc}")
+                    return
+            else:
+                dtype, dsub, dswitch = domotype.split(";")
+                try:
+                    Domoticz.Unit(
+                        Name=name,
+                        Unit=1,
+                        DeviceID=device_id,
+                        Type=int(dtype),
+                        Subtype=int(dsub),
+                        Switchtype=int(dswitch),
+                        TypeName=domotype,
+                        Used=1,
+                    ).Create()
+                except Exception as exc:
+                    Domoticz.Error(f"[Matter] Device creation failed: {exc}")
+                    return
         try:
             dev = self._devices.get(device_id)
             if dev is None:
