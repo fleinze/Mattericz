@@ -36,14 +36,14 @@ import DomoticzEx as Domoticz
 # ---------------------------------------------------------------------------
 
 TypeDB = {
-(0x0402,0x0000): {'DomoType': 'Temperature',     'Multiplier': 0.010},
-(0x0405,0x0000): {'DomoType': 'Humidity',        'Multiplier': 0.010},
-(0x0006,0x0000): {'DomoType': 'Switch',          'Multiplier': 1.000},
+(0x0402,0x0000): {'DomoType': 'Temperature',     'Multiplier': 0.01},
+(0x0405,0x0000): {'DomoType': 'Humidity',        'Multiplier': 0.01},
+(0x0006,0x0000): {'DomoType': 'Switch',          'Multiplier': 1.},
 (0x0008,0x0000): {'DomoType': 'Dimmer',          'Multiplier': 0.392},
-(0x0090,0x0004): {'DomoType': 'Voltage',         'Multiplier': 0.001}, #untested
-(0x0090,0x0005): {'DomoType': 'Current (Single)','Multiplier': 0.001}, #untested
-(0x0090,0x0008): {'DomoType': 'Usage',           'Multiplier': 0.001}, #untested
-(0x0091,0x0001): {'DomoType': 'RFXMeter',        'Multiplier': 0.001}, #untested
+(0x0090,0x0004): {'DomoType': 'Voltage',         'Multiplier': 0.001},
+(0x0090,0x0005): {'DomoType': 'Current (Single)','Multiplier': 0.001},
+(0x0090,0x0008): {'DomoType': 'Usage',           'Multiplier': 0.001},
+#(0x0091,0x0001): {'DomoType': 'RFXMeter',        'Multiplier': 0.001}, #untested
 }
 
 def _m2d(value, cluster_id, attribute_id) -> (int, str):
@@ -55,11 +55,11 @@ def _m2d(value, cluster_id, attribute_id) -> (int, str):
         return int(value), "On" if value == 1 else "Off"
     if domotype == 'Dimmer':
         return 0 if value==0 else 1, str(int(round(float(value*multiplier))))
-    return 0, str(value*multiplier)
+    return 0, str(round(value*multiplier,3))
 
-def _make_device_id(node_id: int, endpoint_id: int, cluster_id: int) -> str:
+def _make_device_id(node_id: int, endpoint_id: int, cluster_id: int, attribute_id: int) -> str:
     """Stable Domoticz DeviceID string (Varchar(25) max)."""
-    return f"{node_id}/{endpoint_id}/{cluster_id}"
+    return f"{node_id}/{endpoint_id}/{cluster_id}/{attribute_id}"
 
 def _parse_attribute_path(path: str):
     """
@@ -270,7 +270,7 @@ class MatterBridge:
         """ Updates the Domoticz device value. Creates if neccessary """
         if value is None:
             return
-        device_id = _make_device_id(node_id, endpoint_id, cluster_id)
+        device_id = _make_device_id(node_id, endpoint_id, cluster_id, attribute_id)
         existing_unit = self._find_unit_by_device_id(device_id)
         domotype = TypeDB.get((cluster_id, attribute_id))['DomoType']
         #multiplier = TypeDB.get((cluster_id, attribute_id))['Multiplier']
