@@ -1,6 +1,8 @@
 # Mattericz
 Matter plugin for Domoticz
 
+**Requires Domoticz >= 17725 (2026 beta)**
+
 *This plugin was written with the assistance of AI*
 
 Licensed under the [MIT License](LICENSE.txt)

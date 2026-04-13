@@ -3,37 +3,15 @@
 """
 matter.py  –  Matter protocol logic for the Domoticz Matter plugin.
 
-This module contains NO networking code. The WebSocket connection is managed
-by plugin.py via Domoticz.Connection (Protocol="WS"). This module receives
-calls from plugin.py:
-
-  bridge = MatterBridge(devices=Devices, debug=True)
-  bridge.on_connected(send_fn)    # called once WS handshake succeeded (Status 101)
-  bridge.on_message(raw_str)      # called for every incoming WS Payload
-  bridge.on_command(...)          # called when a command is executed in Domoticz
-
-Outgoing messages are sent via the send_fn(str) callback.
-
-Websocket message format (python-matter-server):
-  Command   : {"message_id": "<id>", "command": "<cmd>", "args": {...}}
-  Response  : {"message_id": "<id>", "result": <data>}  |  error_code field
-  Event     : {"event": "<type>", "data": <any>}
-
-Event types of interest:
-  attribute_updated  → data = [node_id, "endpoint/cluster/attr", value]
-  node_added / node_updated / node_removed
-
-Supported Matter clusters (v0.1):
-  see TypeDB struct
+Add own matter types:
+1. add to TypeDB
+2. if it expects something different from nvalue = 0, svalue = value, add it to _m2d()
+3. if it needs a command, add it to on_command()
 """
 
 import json
 
 import DomoticzEx as Domoticz
-
-# ---------------------------------------------------------------------------
-# Constants – Matter cluster / attribute IDs
-# ---------------------------------------------------------------------------
 
 TypeDB = {
 (0x0402,0x0000): {'DomoType': 'Temperature',     'Multiplier': 0.01},
@@ -135,7 +113,6 @@ class MatterBridge:
             return
 
         node_id, endpoint_id, cluster_id = parsed
-#        Domoticz.Log(self._devices[DeviceID].Units[1].Type)
         command = "device_command"
         if (Command == "On" or Command == "Off") and cluster_id == 0x0006:
             args = {
@@ -237,10 +214,10 @@ class MatterBridge:
 
         # Determine NodeLabel per endpoint:
         # - Cluster 0x0039 (57) = Bridged Device Basic Information, only
-        #   present on bridged device endpoints → use that endpoint's own label
+        #   present on bridged device endpoints -> use that endpoint's own label
         # - Cluster 0x0028 (40) = Basic Information, on ep0 of native devices
-        #   → use ep0/40/5
-        # We build a cache of ep → label once before the attribute loop.
+        #   -> use ep0/40/5
+        # We build a cache of ep -> label once before the attribute loop.
         ep_labels: dict = {}
         ep_values: list = []
         for attr_path, value in attributes.items():
@@ -321,7 +298,7 @@ class MatterBridge:
             unit_obj.nValue = nvalue
             unit_obj.sValue = svalue
             unit_obj.Update(Log=True)
-            Domoticz.Log(f"[Matter] Value {device_id} → {nvalue},{svalue}")
+            Domoticz.Log(f"[Matter] Value {device_id} -> {nvalue},{svalue}")
         except Exception as exc:
             Domoticz.Error(f"[Matter] Device update failed: {exc}")
 
