@@ -1,13 +1,13 @@
 # Mattericz
 Matter plugin for Domoticz
 
-**Requires Domoticz >= 17725 (2026 beta)**
-
 *This plugin was written with the assistance of AI*
 
 Licensed under the [MIT License](LICENSE.txt)
 
 ## Requirements
+**Requires Domoticz >= 17725 (2026 beta)**
+
 Requires a running instance of the Open Home Foundation Matter Server.
 
 https://github.com/matter-js/python-matter-server

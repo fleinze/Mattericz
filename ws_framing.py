@@ -20,16 +20,9 @@ import zlib
 
 import DomoticzEx as Domoticz
 
-class WsConnection:
-    """
-    WebSocket connection using Domoticz Protocol="WS".
-    Domoticz handles framing and fragmentation; we only deal with the
-    dict-based Data in onMessage.
+USE_COMPRESSION = True # Request compressed payload from server, set True or False
 
-    If the server negotiates permessage-deflate and Domoticz does not
-    decompress (older builds), Payload arrives as bytes – we fall back to
-    zlib decompression in that case.
-    """
+class WsConnection:
 
     PROTOCOL = "WS"
 
@@ -89,14 +82,18 @@ class WsConnection:
             f"[WS] TCP connected to {self._host}:{self._port}"
             " – sending WS upgrade ..."
         )
+        wsext = (
+           "permessage-deflate; client_no_context_takeover"
+           if USE_COMPRESSION
+           else ""
+        )
         self._conn.Send({
             "URL": self._path,
             "Headers": {
                 "Host": f"{self._host}:{self._port}",
                 "Origin": f"http://{self._host}:{self._port}",
                 "Sec-WebSocket-Key": base64.b64encode(secrets.token_bytes(16)).decode(),
-                "Sec-WebSocket-Extensions": "permessage-deflate; client_no_context_takeover",
-#                "Sec-WebSocket-Extensions": "", # Use to deactivate compression
+                "Sec-WebSocket-Extensions": wsext,
             },
         })
         return True
@@ -106,7 +103,6 @@ class WsConnection:
         Called from plugin.py onMessage.
         Yields complete messages (str), ("ping", bytes), or None (close).
         """
-        # --- Handshake response -----------------------------------------
         if "Status" in Data:
             if Data["Status"] == "101":
                 Domoticz.Log("[WS] Handshake complete (Protocol=WS).")
@@ -115,7 +111,6 @@ class WsConnection:
                 Domoticz.Error(f"[WS] Unexpected HTTP status: {Data.get('Status')}")
             return
 
-        # --- Control frames ---------------------------------------------
         if "Operation" in Data:
             op = Data["Operation"]
             if op == "Ping":
@@ -126,13 +121,12 @@ class WsConnection:
             # Pong – ignore
             return
 
-        # --- Payload ----------------------------------------------------
         if "Payload" not in Data:
             return
 
         raw = Data["Payload"]
 
-        if isinstance(raw, (bytes, bytearray)): # if payload is compressed, deflate it.
+        if USE_COMPRESSION and isinstance(raw, (bytes, bytearray)): # if payload is compressed, deflate it.
 #            Domoticz.Debug("decompressing")
             try:
                 raw = self._inflator.decompress(raw + b"\x00\x00\xff\xff")
