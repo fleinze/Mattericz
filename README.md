@@ -31,19 +31,21 @@ Thread sensors work. I use the ESP Thread Border Router https://openthread.io/gu
 Currently supported are
 * Temperature
 * Humidity
-* On/Off Relay
+* On/Off relay
 * Dimmer
 * Voltage
 * Current
 * Power
 * Energy
-* Push-Button Switches (generic switch)
+* Push-Button switches (generic switch)
+* Boolean state sensor (e.g. water leak sensor)
 
 Currently tested with:
 * Tasmota32 (Temp, Hum, OnOff, Dimmer)
 * Ikea Timmerflotte (Thread Temp/Hum-sensor)
 * Ikea Grillplats (Thread electrical measurment plug)
 * Ikea Bilresa dual button (creates two Domoticz devices: one for the upper button, one for the lower button)
+* Ikea Klippbok water leak sensor
 
 ## Add own sensors
 Edit `matter.py`. 

@@ -16,8 +16,9 @@ import DomoticzEx as Domoticz
 TypeDB = {
 (0x0402,0x0000): {'DomoType': 'Temperature',     'Multiplier': 0.01},
 (0x0405,0x0000): {'DomoType': 'Humidity',        'Multiplier': 0.01},
-(0x0006,0x0000): {'DomoType': 'Switch',          'Multiplier': 1.},
-(0x003b,0x0001): {'DomoType': 'Switch',          'Multiplier': 1.},
+(0x0006,0x0000): {'DomoType': 'Switch',          'Multiplier': 1.}, # On/Off cluster
+(0x003b,0x0001): {'DomoType': 'Switch',          'Multiplier': 1.}, # Switch cluster
+(0x0045,0x0000): {'DomoType': 'Switch',          'Multiplier': 1.}, # boolean state cluster
 (0x0008,0x0000): {'DomoType': 'Dimmer',          'Multiplier': 0.392},
 (0x0090,0x0004): {'DomoType': 'Voltage',         'Multiplier': 0.001},
 (0x0090,0x0005): {'DomoType': 'Current (Single)','Multiplier': 0.001},
@@ -28,6 +29,8 @@ TypeDB = {
 def _m2d(value, cluster_id, attribute_id) -> (int, str):
     domotype = TypeDB.get((cluster_id, attribute_id))['DomoType']
     multiplier = TypeDB.get((cluster_id, attribute_id))['Multiplier']
+    if cluster_id == 0x0045:
+        Domoticz.Log(f"waterleak: {value}")
     if domotype == 'Humidity':
         return int(round(float(value*multiplier))), "0"
     if domotype == 'Switch':
@@ -114,7 +117,7 @@ class MatterBridge:
 
         node_id, endpoint_id, cluster_id = parsed
         command = "device_command"
-        if (Command == "On" or Command == "Off") and cluster_id == 0x0006:
+        if (Command == "On" or Command == "Off") and cluster_id == 0x0006: # On and Off commands for On/Off-cluster
             args = {
                 "endpoint_id": endpoint_id,
                 "node_id": node_id,
@@ -122,7 +125,7 @@ class MatterBridge:
                 "cluster_id": cluster_id,
                 "command_name": Command
             }
-        elif Command == "Off" and cluster_id == 0x0008:
+        elif Command == "Off" and cluster_id == 0x0008: # Off command for dimmer cluster
             args = {
                 "endpoint_id": endpoint_id,
                 "node_id": node_id,
@@ -138,6 +141,8 @@ class MatterBridge:
                 "cluster_id": cluster_id,
                 "command_name": "MoveToLevel"
             }
+        elif cluster_id == 0x003b or cluster_id == 0x0045: # Clusters that don't support commands
+            return
         self._send_command(command, args)
 
     # ------------------------------------------------------------------
