@@ -115,6 +115,7 @@ class MatterBridge:
 
         node_id, endpoint_id, cluster_id = parsed
         command = "device_command"
+        args = None
         if (Command == "On" or Command == "Off") and cluster_id == 0x0006: # On and Off commands for On/Off-cluster
             args = {
                 "endpoint_id": endpoint_id,
@@ -139,9 +140,8 @@ class MatterBridge:
                 "cluster_id": cluster_id,
                 "command_name": "MoveToLevel"
             }
-        elif cluster_id == 0x003b or cluster_id == 0x0045: # Clusters that don't support commands
-            return
-        self._send_command(command, args)
+        if args is not None:
+            self._send_command(command, args)
 
     # ------------------------------------------------------------------
     # Message dispatch
