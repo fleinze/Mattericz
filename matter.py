@@ -29,8 +29,6 @@ TypeDB = {
 def _m2d(value, cluster_id, attribute_id) -> (int, str):
     domotype = TypeDB.get((cluster_id, attribute_id))['DomoType']
     multiplier = TypeDB.get((cluster_id, attribute_id))['Multiplier']
-    if cluster_id == 0x0045:
-        Domoticz.Log(f"waterleak: {value}")
     if domotype == 'Humidity':
         return int(round(float(value*multiplier))), "0"
     if domotype == 'Switch':
