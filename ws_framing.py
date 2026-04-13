@@ -82,18 +82,13 @@ class WsConnection:
             f"[WS] TCP connected to {self._host}:{self._port}"
             " – sending WS upgrade ..."
         )
-        wsext = (
-           "permessage-deflate; client_no_context_takeover"
-           if USE_COMPRESSION
-           else ""
-        )
         self._conn.Send({
             "URL": self._path,
             "Headers": {
                 "Host": f"{self._host}:{self._port}",
                 "Origin": f"http://{self._host}:{self._port}",
                 "Sec-WebSocket-Key": base64.b64encode(secrets.token_bytes(16)).decode(),
-                "Sec-WebSocket-Extensions": wsext,
+                "Sec-WebSocket-Extensions": "permessage-deflate; client_no_context_takeover" if USE_COMPRESSION else "",
             },
         })
         return True
