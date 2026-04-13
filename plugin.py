@@ -7,7 +7,7 @@ Domoticz Matter Plugin
 Requires Domoticz >= 17725 (2026.1 beta)
 
 <plugin key="Matter" name="Matter (python-matter-server)" author="fleinze" version="0.9.0"
-        externallink="https://github.com/fleinze/domoticz-python-matter">
+        externallink="https://github.com/fleinze/Mattericz">
     <description>
         Connects to a python-matter-server WebSocket and imports Matter devices into Domoticz.
         For commissioning of new nodes open the python-matter-server in a webbrowser or via the domoticz custom menu.
