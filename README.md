@@ -23,6 +23,23 @@ docker run -d --name matter-server \
   ghcr.io/matter-js/python-matter-server:stable \
   --storage-path /data --paa-root-cert-dir /data/credentials --bluetooth-adapter 0
 ```
+or with `docker compose`:
+```
+services:
+  matterserver:
+     image: ghcr.io/matter-js/python-matter-server:stable
+     restart: unless-stopped
+     volumes:
+       - /opt/matterserver/data:/data
+       - /run/dbus:/run/dbus:ro
+     network_mode: host
+     security_opt:
+       - apparmor=unconfined
+     command: >
+      --storage-path /data
+      --paa-root-cert-dir /data/credentials
+      --bluetooth-adapter 0
+```
 
 ## Threads
 Thread sensors work. I use the ESP Thread Border Router https://openthread.io/guides/border-router/espressif-esp32
