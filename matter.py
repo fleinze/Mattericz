@@ -50,6 +50,7 @@ _SINGLE_TYPES = {
     (0x0090, 0x0005): {'DomoType': 'Current (Single)', 'Multiplier': 0.001},
     (0x0090, 0x0008): {'DomoType': 'Usage',            'Multiplier': 0.001}, # will probably not exist as single type, according to matter-survey
     (0x0091, 0x0001): {'DomoType': '113;0;0',          'Multiplier': 1.0},   # will probably not exist as single type, according to matter-survey
+#    (0x002f, 0x000c): {'DomoType': 'Custom',           'Multiplier': 0.5},  # Battery percentage: activate if you want a custom device with battery level
 }
 
 # ---------------------------------------------------------------------------
@@ -267,10 +268,15 @@ class MatterBridge:
         if key not in _SINGLE_TYPES:
             return
 
+        if (endpoint_id, cluster_id, attribute_id) == (0,0x002f,0x000c): #update battery percentage
+            prefix = f"{node_id}/"
+            for dev_id in self._devices:
+                if str(dev_id).startswith(prefix):
+                     self._devices[dev_id].Units[1].BatteryLevel=int(value/2)
+
         if (cluster_id, attribute_id) in _TRANSFORM_VALUES: #handle transforms
             transform = _TRANSFORM_VALUES.get((cluster_id, attribute_id), lambda v: v)
             value = transform(value)
-
 
         # --- Check if this attribute belongs to a combined device -------
         cname = _ABSORBED_BY_COMBINED.get(key)
@@ -402,8 +408,6 @@ class MatterBridge:
         node_id    = node.get("node_id")
         attributes = node.get("attributes") or {}
         available = node.get("available")
-        if available:
-            Domoticz.Log(f"node {node_id} available {available}")
         if not attributes:
             return
         Domoticz.Log(f"[Matter] Processing node {node_id}: {len(attributes)} attribute(s).")
@@ -432,6 +436,11 @@ class MatterBridge:
                 value = transform(value)
             if (cluster_id, attribute_id) in _SINGLE_TYPES:
                 known_values[(endpoint_id, cluster_id, attribute_id)] = value
+            if (endpoint_id, cluster_id, attribute_id) == (0,0x002f,0x000c): # update battery percentage
+                prefix = f"{node_id}/"
+                for dev_id in self._devices:
+                    if str(dev_id).startswith(prefix):
+                        self._devices[dev_id].Units[1].BatteryLevel=int(value/2)
 
         # Lable-Priority:
         # 1. 0x28,0x5 if not empty
@@ -684,9 +693,9 @@ class MatterBridge:
         elif domotype == 'Dimmer':
             nvalue = 0 if value == 0 else 1
             svalue = str(int(round(float(value * multiplier))))
-        elif domotype == '113;0;0':
-            nvalue = 0
-            svalue = str(round(value["0"] * multiplier, 3))
+#        elif domotype == '113;0;0':
+#            nvalue = 0
+#            svalue = str(round(value["0"] * multiplier, 3))
         else:
             nvalue = 0
             svalue = str(round(value * multiplier, 3))

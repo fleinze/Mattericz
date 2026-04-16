@@ -56,6 +56,11 @@ Currently supported are
 * Energy
 * Push-Button switches (generic switch)
 * Boolean state sensor (e.g. water leak sensor)
+* BatteryLevel
+
+The following devices are combined:
+* Temperatur + Humidity
+* Power + Energy
 
 Currently tested with:
 * Tasmota32 (Temp, Hum, OnOff, Dimmer)
@@ -63,15 +68,20 @@ Currently tested with:
 * Ikea Grillplats (Thread electrical measurment plug)
 * Ikea Bilresa dual button (creates two Domoticz devices: one for the upper button, one for the lower button)
 * Ikea Klippbok water leak sensor
+* Ikea Kajplats light bulb
+
+Currently not supported:
+* Color Temperature
+* RGB Color
 
 ## Add own sensors
 Edit `matter.py`. 
-Add a line to `TypeDB` containing
+Add a line to `_SINGLE_TYPES` containing
 ```
 (cluster_id, attribute_id):{'DomoType': 'Type', 'Multiplier':1.0}
 ```
 Where DomoType is either the TypeName oder the numeric type in the format Type;Subtype;Switchtype of the Domoticz-device and Multiplier is a multiplier that needs to be multiplied to the Matter value before sending it to domoticz.
-If Domoticz expects anything different than `nValue=0` and `sValue=value` you need to add it to `_m2d()`. Commands are handled in `on_command`.
+If Domoticz expects anything different than `nValue=0` and `sValue=value` you need to add it to `_update_value()`. Commands are handled in `on_command()`.
 
 ## Contributing
 Currently experimental, use at your own risk. You are welcome to fork and contribute.
