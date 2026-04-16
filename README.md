@@ -30,7 +30,7 @@ services:
      image: ghcr.io/matter-js/python-matter-server:stable
      restart: unless-stopped
      volumes:
-       - /opt/matterserver/data:/data
+       - $(pwd)/data:/data
        - /run/dbus:/run/dbus:ro
      network_mode: host
      security_opt:
