@@ -401,6 +401,9 @@ class MatterBridge:
     def _process_node(self, node: dict):
         node_id    = node.get("node_id")
         attributes = node.get("attributes") or {}
+        available = node.get("available")
+        if available:
+            Domoticz.Log(f"node {node_id} available {available}")
         if not attributes:
             return
         Domoticz.Log(f"[Matter] Processing node {node_id}: {len(attributes)} attribute(s).")
@@ -453,7 +456,7 @@ class MatterBridge:
         for cdev_id, cinfo in combined_map.items():
             for ep, cl, at, val in cinfo['members']:
                 handled_by_combined.add((ep, cl, at))
-            self._update_combined(node_id, cdev_id, cinfo)
+            self._update_combined(node_id, cdev_id, cinfo, available)
 
         # --- Pass 3: individual devices for remaining attributes ---------
         for (endpoint_id, cluster_id, attribute_id), value in known_values.items():
@@ -466,7 +469,7 @@ class MatterBridge:
                 transform = _TRANSFORM_VALUES.get((cluster_id, attribute_id), lambda v: v)
                 value = transform(value)
             label = ep_labels.get(endpoint_id) or ep_labels.get("_root")
-            self._update_value(node_id, endpoint_id, cluster_id, attribute_id, value, label)
+            self._update_value(node_id, endpoint_id, cluster_id, attribute_id, value, available, label)
 
     # ------------------------------------------------------------------
     # Combined device resolution
@@ -559,7 +562,7 @@ class MatterBridge:
     # Combined device update / create
     # ------------------------------------------------------------------
 
-    def _update_combined(self, node_id: int, device_id: str, cinfo: dict):
+    def _update_combined(self, node_id: int, device_id: str, cinfo: dict, available: bool = True):
         """Create (if needed) and update a combined Domoticz device."""
         existing_unit = self._find_unit_by_device_id(device_id)
         if existing_unit is None:
@@ -614,6 +617,7 @@ class MatterBridge:
 
         unit_obj.nValue = nvalue
         unit_obj.sValue = svalue
+        self._devices[device_id].TimedOut = not available
         unit_obj.Update(Log=True)
         Domoticz.Log(f"[Matter] Combined {device_id} -> {nvalue},{svalue}")
 
@@ -622,7 +626,7 @@ class MatterBridge:
     # ------------------------------------------------------------------
 
     def _update_value(self, node_id: int, endpoint_id: int, cluster_id: int,
-                      attribute_id: int, value, label: str = None):
+                      attribute_id: int, value, available: bool=True, label: str = None):
         """Create (if needed) and update a single-attribute Domoticz device."""
         if value is None:
             return
@@ -689,6 +693,7 @@ class MatterBridge:
 
         unit_obj.nValue = nvalue
         unit_obj.sValue = svalue
+        self._devices[device_id].TimedOut = not available
         unit_obj.Update(Log=True)
         Domoticz.Log(f"[Matter] Value {device_id} -> {nvalue},{svalue}")
 
