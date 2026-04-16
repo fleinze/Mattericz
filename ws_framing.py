@@ -56,8 +56,8 @@ class WsConnection:
         if not self._conn:
             Domoticz.Error("[WS] send: not connected")
             return
-        if self._debug:
-            Domoticz.Debug(f"[WS] -> {payload[:200]}")
+#        if self._debug:
+#            Domoticz.Debug(f"[WS] -> {payload[:200]}")
         self._conn.Send({"Payload": payload, "Mask": secrets.randbits(32)})
 
     def pong(self, payload: bytes):
