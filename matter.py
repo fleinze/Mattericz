@@ -48,8 +48,8 @@ _SINGLE_TYPES = {
     (0x0008, 0x0000): {'DomoType': 'Dimmer',           'Multiplier': 0.392},
     (0x0090, 0x0004): {'DomoType': 'Voltage',          'Multiplier': 0.001},
     (0x0090, 0x0005): {'DomoType': 'Current (Single)', 'Multiplier': 0.001},
-    (0x0090, 0x0008): {'DomoType': 'Usage',            'Multiplier': 0.001},
-    (0x0091, 0x0001): {'DomoType': '113;0;0',          'Multiplier': 1.0},
+    (0x0090, 0x0008): {'DomoType': 'Usage',            'Multiplier': 0.001}, # will probably not exist as single type, according to matter-survey
+    (0x0091, 0x0001): {'DomoType': '113;0;0',          'Multiplier': 1.0},   # will probably not exist as single type, according to matter-survey
 }
 
 # ---------------------------------------------------------------------------
@@ -210,6 +210,10 @@ class MatterBridge:
             args = {"endpoint_id": endpoint_id, "node_id": node_id,
                     "payload": {"level": int(Level / 100 * 255), "transitionTime": 3},
                     "cluster_id": cluster_id, "command_name": "MoveToLevel"}
+            if Level > 0:
+                self._send_command("device_command", args)
+                args = {"endpoint_id": endpoint_id, "node_id": node_id,
+                    "payload": {}, "cluster_id": 0x0006, "command_name": "On"}
         if args is not None:
             self._send_command("device_command", args)
 
