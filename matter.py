@@ -653,10 +653,6 @@ class MatterBridge:
             name = label if label else f"Matter {node_id}/{endpoint_id}"
             Domoticz.Log(f"[Matter] Creating device '{name}' (DeviceID={device_id})")
             options = None
-            if domotype == 'Usage':
-                # Replace standalone Usage with kWh-mode device
-                domotype = 'kWh'
-                options  = {'EnergyMeterMode': '1'}
             ok = _create_unit(name, device_id, domotype, options)
             if not ok:
                 return
