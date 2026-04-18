@@ -1,6 +1,8 @@
 # Mattericz
 Matter plugin for Domoticz
 
+**Important notice: This plugin is depricated as Domoticz (beta) now has this as a built-in hardware**
+
 *This plugin was written with the assistance of AI*
 
 Licensed under the [MIT License](LICENSE.txt)
